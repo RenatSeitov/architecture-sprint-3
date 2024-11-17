@@ -1,85 +1,373 @@
-# Базовая настройка
+# Smart Village Ecosystem API
 
-## Запуск minikube
+Добро пожаловать в документацию API для экосистемы умного дома! Это API предоставляет функционал для управления устройствами, мониторинга параметров, настройки автоматических сценариев и обработки уведомлений.
 
-[Инструкция по установке](https://minikube.sigs.k8s.io/docs/start/)
+---
 
-```bash
-minikube start
+## Оглавление
+
+1. [Микросервис «Управление устройствами»](#микросервис-управление-устройствами)
+    - [Получение информации об устройстве](#11-получение-информации-об-устройстве)
+    - [Обновление состояния устройства](#12-обновление-состояния-устройства)
+    - [Отправка команды устройству](#13-отправка-команды-устройству)
+2. [Микросервис «Мониторинг температуры»](#микросервис-мониторинг-температуры)
+    - [Получение текущей температуры](#21-получение-текущей-температуры)
+    - [Регистрация нового датчика](#22-регистрация-нового-датчика)
+3. [Микросервис «Управление сценариями»](#микросервис-управление-сценариями)
+    - [Создание сценария](#31-создание-сценария)
+    - [Запуск сценария](#32-запуск-сценария)
+    - [Удаление сценария](#33-удаление-сценария)
+4. [Микросервис «Уведомления и события»](#микросервис-уведомления-и-события)
+    - [Подписка на события](#41-подписка-на-события)
+    - [Уведомления о событиях (Kafka)](#42-уведомления-о-событиях-kafka)
+
+---
+
+## Микросервис «Управление устройствами»
+
+### 1.1 Получение информации об устройстве
+
+**HTTP-метод:** `GET`  
+**Эндпоинт:** `/devices/{deviceId}`  
+**Описание:** Возвращает информацию об устройстве.
+
+#### Пример запроса:
+```http
+GET /devices/12345 HTTP/1.1
+Host: api.smartvillage.com
 ```
 
-## Добавление токена авторизации GitHub
+#### Пример ответа:
 
-[Получение токена](https://github.com/settings/tokens/new)
-
-```bash
-kubectl create secret docker-registry ghcr --docker-server=https://ghcr.io --docker-username=<github_username> --docker-password=<github_token> -n default
-```
-
-## Установка API GW kusk
-
-[Install Kusk CLI](https://docs.kusk.io/getting-started/install-kusk-cli)
-
-```bash
-kusk cluster install
-```
-
-## Смена адреса образа в helm chart
-
-После того как вы сделали форк репозитория и у вас в репозитории отработал GitHub Action. Вам нужно получить адрес образа <https://github.com/><github_username>/architecture-sprint-3/pkgs/container/architecture-sprint-3
-
-Он выглядит таким образом
-```ghcr.io/<github_username>/architecture-sprint-3:latest```
-
-Замените адрес образа в файле `helm/smart-home-monolith/values.yaml` на полученный файл:
-
-```yaml
-image:
-  repository: ghcr.io/<github_username>/architecture-sprint-3
-  tag: latest
-```
-
-## Настройка terraform
-
-[Установите Terraform](https://yandex.cloud/ru/docs/tutorials/infrastructure-management/terraform-quickstart#install-terraform)
-
-Создайте файл ~/.terraformrc
-
-```hcl
-provider_installation {
-  network_mirror {
-    url = "https://terraform-mirror.yandexcloud.net/"
-    include = ["registry.terraform.io/*/*"]
-  }
-  direct {
-    exclude = ["registry.terraform.io/*/*"]
-  }
+```json
+{
+  "deviceId": "12345",
+  "name": "Smart Thermostat",
+  "status": "online",
+  "lastUpdated": "2024-11-17T10:30:00Z",
+  "type": "thermostat"
 }
 ```
 
-## Применяем terraform конфигурацию
+#### Коды ответа:
+**200:** `Устройство найдено.`
+**404:** `Устройство не найдено.`
 
-```bash
-cd terraform
-terraform init
-terraform apply
+## Микросервис «Управление устройствами»
+
+### 1.2 Обновление состояния устройства
+
+**HTTP-метод:** `PUT`
+**Эндпоинт:** `/devices/{deviceId}/state`
+**Описание:** `Обновляет состояние устройства.`
+
+#### Пример запроса:
+```json
+{
+  "state": "on"
+}
 ```
 
-## Настройка API GW
+#### Пример ответа:
 
-```bash
-kusk deploy -i api.yaml
+```json
+{
+  "deviceId": "12345",
+  "status": "success",
+  "message": "Device state updated."
+}
+
 ```
 
-## Проверяем работоспособность
+#### Коды ответа:
+**200:** `Состояние обновлено`
+**400:** `Неверный запрос`
+**404:** `Устройство не найдено`
 
-```bash
-kubectl port-forward svc/kusk-gateway-envoy-fleet -n kusk-system 8080:80
-curl localhost:8080/hello
+
+
+### 1.2 Отправка команды устройству
+
+**HTTP-метод:** `POST`
+**Эндпоинт:** `/devices/{deviceId}/commands`
+**Описание:** `Отправляет команду на устройство.`
+
+
+#### Пример запроса:
+```json
+{
+  "command": "set_temperature",
+  "parameters": {
+    "value": 22
+  }
+}
+
 ```
 
-## Delete minikube
+#### Пример ответа:
 
-```bash
-minikube delete
+```json
+{
+  "deviceId": "12345",
+  "status": "success",
+  "message": "Command sent to device."
+}
+
+```
+
+#### Коды ответа:
+**200:** `Команда отправлена`
+**400:** `Ошибка в запросе`
+**404:** `Устройство не найдено`
+
+
+## Микросервис «Мониторинг температуры»
+
+### 2.1 Получение текущей температуры
+
+**HTTP-метод:** `GET`
+**Эндпоинт:** `/sensors/{sensorId}/temperature`
+**Описание:** `Возвращает текущую температуру, полученную с датчика.`
+
+
+#### Пример запроса:
+```http
+GET /sensors/67890/temperature HTTP/1.1
+Host: api.smartvillage.com
+```
+
+
+#### Пример ответа:
+
+```json
+{
+  "sensorId": "67890",
+  "temperature": 21.5,
+  "unit": "C",
+  "timestamp": "2024-11-17T10:45:00Z"
+}
+
+```
+
+#### Коды ответа:
+**200:** `Температура возвращена`
+**404:** `Датчик не найден`
+
+
+### 2.2 Регистрация нового датчика
+
+**HTTP-метод:** `POST`
+**Эндпоинт:** `/sensors`
+**Описание:** `Регистрирует новый датчик в системе.`
+
+
+#### Пример запроса:
+```json
+{
+  "sensorId": "67890",
+  "type": "temperature",
+  "location": "Living Room"
+}
+
+
+```
+
+#### Пример ответа:
+
+```json
+{
+  "sensorId": "67890",
+  "status": "registered",
+  "message": "Sensor successfully registered."
+}
+
+```
+
+#### Коды ответа:
+**201:** `Датчик зарегистрирован`
+**400:** `Ошибка в запросе`
+
+
+## Микросервис «Управление сценариями»
+
+### 3.1 Создание сценария
+
+**HTTP-метод:** `POST`
+**Эндпоинт:** `/scenarios`
+**Описание:** `Создает новый сценарий для управления устройствами.`
+
+
+#### Пример запроса:
+```json
+{
+  "name": "Morning Routine",
+  "actions": [
+    {
+      "deviceId": "12345",
+      "command": "turn_on"
+    },
+    {
+      "deviceId": "67890",
+      "command": "set_temperature",
+      "parameters": {
+        "value": 22
+      }
+    }
+  ]
+}
+
+```
+
+#### Пример ответа:
+
+```json
+{
+  "scenarioId": "abc123",
+  "status": "created",
+  "message": "Scenario successfully created."
+}
+
+```
+
+#### Коды ответа:
+**201:** `Сценарий создан`
+**400:** `Ошибка в запросе`
+
+
+### 3.2 Запуск сценария
+
+**HTTP-метод:** `POST`
+**Эндпоинт:** `/scenarios/{scenarioId}/execute`
+**Описание:** `Запускает указанный сценарий.`
+
+
+#### Пример запроса:
+```http
+POST /scenarios/abc123/execute HTTP/1.1
+Host: api.smartvillage.com
+
+```
+
+#### Пример ответа:
+
+```json
+{
+  "scenarioId": "abc123",
+  "status": "executed",
+  "message": "Scenario executed successfully."
+}
+
+```
+
+#### Коды ответа:
+**201:** `Сценарий выполнен`
+**404:** `Сценарий не найден`
+
+
+### 3.3 Удаление сценария
+
+**HTTP-метод:** `DELETE`
+**Эндпоинт:** `/scenarios/{scenarioId}`
+**Описание:** `Удаляет указанный сценарий.`
+
+
+#### Пример запроса:
+```http
+DELETE /scenarios/abc123 HTTP/1.1
+Host: api.smartvillage.com
+```
+
+#### Пример ответа:
+
+```json
+{
+  "scenarioId": "abc123",
+  "status": "deleted",
+  "message": "Scenario deleted successfully."
+}
+
+
+```
+
+#### Коды ответа:
+**201:** `Сценарий удален`
+**404:** `Сценарий не найден`
+
+
+## Микросервис «Уведомления и события»
+
+### 4.1 Подписка на события
+
+**HTTP-метод:** `POST`
+**Эндпоинт:** `/notifications/subscribe`
+**Описание:** `Регистрирует подписку на уведомления о событиях`
+
+
+#### Пример запроса:
+```json
+{
+  "userId": "user123",
+  "eventType": "device_state_changed"
+}
+
+
+```
+
+#### Пример ответа:
+
+```json
+{
+  "subscriptionId": "sub123",
+  "status": "subscribed",
+  "message": "Subscription successful."
+}
+
+
+```
+
+#### Коды ответа:
+**201:** `Подписка зарегистрирована`
+**400:** `Ошибка в запросе`
+
+
+### 4.2 Уведомления о событиях (Kafka)
+
+**Тип:** Асинхронный
+**Описание:** Отправляет уведомления о событиях, таких как изменение состояния устройства.
+
+#### Пример запроса:
+```json
+{
+  "eventType": "device_state_changed",
+  "deviceId": "12345",
+  "timestamp": "2024-11-17T10:50:00Z",
+  "details": {
+    "oldState": "off",
+    "newState": "on"
+  }
+}
+
+```
+
+#### Пример ответа:
+
+```json
+{
+  "subscriptionId": "sub123",
+  "status": "subscribed",
+  "message": "Subscription successful."
+}
+
+
+```
+
+#### Коды ответа:
+**201:** `Подписка зарегистрирована`
+**400:** `Ошибка в запросе`
+
+
+Swagger документация находится в smartvillage-api.yaml,  его вы можете прочитать в сервисе:
+```
+https://editor.swagger.io/
+
 ```
