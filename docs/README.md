@@ -118,3 +118,140 @@ Auth --> Database : Проверка данных пользователей
 @enduml
 
 ```
+
+## План действий для проектирования новой архитектуры
+
+1. **Декомпозиция монолитного приложения на микросервисы**
+
+На основе выделенных доменов и границ контекстов, создадим следующие микросервисы:
+
+### 1. Управление устройствами
+- Логика включения/выключения устройств.
+- Настройка целевой температуры.
+### 2. Мониторинг данных
+- Сбор данных с датчиков.
+- Поддержка истории изменений температуры.
+### 3. Аутентификация и авторизация
+- Управление пользователями, их аутентификацией и правами доступа.
+### 4. Пользовательский интерфейс (UI)
+- Веб-интерфейс для взаимодействия пользователей с системой.
+### 5. Обработка данных
+- Использование Kafka для асинхронной обработки данных, например, агрегация данных датчиков или оповещения.
+
+
+2. **Определение взаимодействий**
+### 1. API Gateway
+- Центральная точка входа для всех клиентских запросов.
+- Роутинг запросов к соответствующим микросервисам.
+### 2. Шина данных (Kafka)
+- Используется для асинхронного обмена сообщениями между микросервисами, например:
+- Отправка данных от датчиков к мониторингу.
+- Триггеры событий, таких как изменения в управлении устройствами.
+### 3. Микросервисы
+- Управление устройствами и Мониторинг данных взаимодействуют через Kafka для обработки команд и данных.
+- Аутентификация и авторизация проверяет права доступа для других сервисов через REST API.
+### 4. База данных
+- Каждому микросервису предоставляется собственная база данных (паттерн Database per Service).
+
+
+3. **Визуализация архитектуры**
+### C4: Уровень контейнеров
+
+```
+@startuml
+!define RECTANGLE rectangle
+!define CLOUD cloud
+!define DATABASE database
+
+actor "Пользователь" as User
+
+CLOUD "API Gateway" as Gateway
+
+RECTANGLE "Микросервисы" {
+    RECTANGLE "Управление устройствами" as DeviceService
+    RECTANGLE "Мониторинг данных" as MonitoringService
+    RECTANGLE "Аутентификация и авторизация" as AuthService
+    RECTANGLE "Обработка данных" as DataProcessing
+    RECTANGLE "Пользовательский интерфейс (UI)" as UIService
+}
+
+CLOUD "Kafka" as Kafka
+DATABASE "База данных: Управление устройствами" as DeviceDB
+DATABASE "База данных: Мониторинг" as MonitoringDB
+DATABASE "База данных: Аутентификация" as AuthDB
+
+User --> Gateway : HTTP Запросы
+Gateway --> AuthService : Аутентификация
+Gateway --> UIService : Веб-интерфейс
+Gateway --> DeviceService : Управление устройствами
+Gateway --> MonitoringService : Запрос данных
+
+DeviceService --> DeviceDB : Чтение/Запись
+MonitoringService --> MonitoringDB : Чтение/Запись
+AuthService --> AuthDB : Проверка данных
+
+DeviceService --> Kafka : Публикация событий
+MonitoringService --> Kafka : Публикация данных
+DataProcessing --> Kafka : Подписка на события
+
+@enduml
+
+
+```
+
+### C4: Уровень компонентов (Пример: Управление устройствами)
+
+```
+@startuml
+!define RECTANGLE rectangle
+
+package "Микросервис: Управление устройствами" {
+    RECTANGLE "API" as DeviceAPI
+    RECTANGLE "Обработчик команд" as CommandHandler
+    RECTANGLE "Менеджер состояния" as StateManager
+    RECTANGLE "Клиент Kafka" as KafkaClient
+}
+
+DeviceAPI --> CommandHandler : REST Запросы
+CommandHandler --> StateManager : Логика устройства
+CommandHandler --> KafkaClient : Публикация событий
+StateManager --> KafkaClient : События изменений
+
+@enduml
+
+```
+
+### C4: Уровень кода (Пример: Обработчик команд)
+
+```
+@startuml
+class CommandHandler {
+    + handleCommand(command: DeviceCommand): Response
+    - validateCommand(command: DeviceCommand): bool
+    - sendEvent(event: DeviceEvent)
+}
+
+class DeviceCommand {
+    + id: UUID
+    + type: String
+    + targetTemperature: Float
+}
+
+class DeviceEvent {
+    + id: UUID
+    + type: String
+    + timestamp: DateTime
+}
+
+CommandHandler --> DeviceCommand
+CommandHandler --> DeviceEvent
+@enduml
+
+```
+
+4. **Рекомендации**
+
+- Использовать Kafka для обеспечения высокой скорости обмена данными между микросервисами.
+- Применить API Gateway для унификации точек доступа.
+- Разделить базы данных для обеспечения независимости микросервисов.
+- Для каждого микросервиса предусмотреть мониторинг (например, через Prometheus) и логи (например, через ELK-стек).

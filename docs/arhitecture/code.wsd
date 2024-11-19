@@ -1,0 +1,22 @@
+@startuml
+class CommandHandler {
+    + handleCommand(command: DeviceCommand): Response
+    - validateCommand(command: DeviceCommand): bool
+    - sendEvent(event: DeviceEvent)
+}
+
+class DeviceCommand {
+    + id: UUID
+    + type: String
+    + targetTemperature: Float
+}
+
+class DeviceEvent {
+    + id: UUID
+    + type: String
+    + timestamp: DateTime
+}
+
+CommandHandler --> DeviceCommand
+CommandHandler --> DeviceEvent
+@enduml

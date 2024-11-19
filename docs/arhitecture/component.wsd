@@ -1,0 +1,16 @@
+@startuml
+!define RECTANGLE rectangle
+
+package "Микросервис: Управление устройствами" {
+    RECTANGLE "API" as DeviceAPI
+    RECTANGLE "Обработчик команд" as CommandHandler
+    RECTANGLE "Менеджер состояния" as StateManager
+    RECTANGLE "Клиент Kafka" as KafkaClient
+}
+
+DeviceAPI --> CommandHandler : REST Запросы
+CommandHandler --> StateManager : Логика устройства
+CommandHandler --> KafkaClient : Публикация событий
+StateManager --> KafkaClient : События изменений
+
+@enduml
