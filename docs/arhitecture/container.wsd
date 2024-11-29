@@ -20,6 +20,9 @@ DATABASE "База данных: Управление устройствами" 
 DATABASE "База данных: Мониторинг" as MonitoringDB
 DATABASE "База данных: Аутентификация" as AuthDB
 
+cloud "Датчики (Sensors)" as Sensors
+cloud "Устройства нагрева (Heating Devices)" as HeatingDevices
+
 User --> Gateway : HTTP Запросы
 Gateway --> AuthService : Аутентификация
 Gateway --> UIService : Веб-интерфейс
@@ -33,5 +36,8 @@ AuthService --> AuthDB : Проверка данных
 DeviceService --> Kafka : Публикация событий
 MonitoringService --> Kafka : Публикация данных
 DataProcessing --> Kafka : Подписка на события
+
+Sensors --> MonitoringService : Отправка данных
+DeviceService --> HeatingDevices : Управление устройствами
 
 @enduml

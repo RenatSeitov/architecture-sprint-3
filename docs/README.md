@@ -91,31 +91,23 @@
 
 ```
 @startuml
-!define RECTANGLE rectangle
-!define CLOUD cloud
-!define DATABASE database
-
 actor "Пользователь" as User
-CLOUD "Датчики температуры" as Sensors
-RECTANGLE "Монолитное приложение" as Monolith {
-    RECTANGLE "Управление устройствами" as DeviceControl
-    RECTANGLE "Мониторинг данных" as Monitoring
-    RECTANGLE "Аутентификация и авторизация" as Auth
-    RECTANGLE "Пользовательский интерфейс" as UI
+rectangle "Система управления домом" as System {
+  rectangle "Управление устройствами" as DeviceControl
+  rectangle "Мониторинг данных" as Monitoring
+  rectangle "Аутентификация" as Authentication
 }
-DATABASE "База данных" as Database
 
-User --> Auth : Аутентификация
-User --> UI : Взаимодействие через веб-интерфейс
-UI --> DeviceControl : Управление устройствами
-UI --> Monitoring : Отображение данных
+rectangle "Нагревательные приборы" as HeatingDevices
 
-Sensors --> Monitoring : Отправка данных
-Monitoring --> Database : Хранение истории данных
-DeviceControl --> Database : Чтение и запись конфигурации устройств
-Auth --> Database : Проверка данных пользователей
+User --> Authentication : Аутентификация
+Authentication --> DeviceControl : Авторизованный доступ
+User --> Monitoring : Просмотр данных
+DeviceControl --> HeatingDevices : Управление нагревателями
+Monitoring --> HeatingDevices : Сбор данных
 
 @enduml
+
 
 ```
 
@@ -180,6 +172,9 @@ DATABASE "База данных: Управление устройствами" 
 DATABASE "База данных: Мониторинг" as MonitoringDB
 DATABASE "База данных: Аутентификация" as AuthDB
 
+cloud "Датчики (Sensors)" as Sensors
+cloud "Устройства нагрева (Heating Devices)" as HeatingDevices
+
 User --> Gateway : HTTP Запросы
 Gateway --> AuthService : Аутентификация
 Gateway --> UIService : Веб-интерфейс
@@ -194,30 +189,11 @@ DeviceService --> Kafka : Публикация событий
 MonitoringService --> Kafka : Публикация данных
 DataProcessing --> Kafka : Подписка на события
 
-@enduml
-
-
-```
-
-### C4: Уровень компонентов (Пример: Управление устройствами)
-
-```
-@startuml
-!define RECTANGLE rectangle
-
-package "Микросервис: Управление устройствами" {
-    RECTANGLE "API" as DeviceAPI
-    RECTANGLE "Обработчик команд" as CommandHandler
-    RECTANGLE "Менеджер состояния" as StateManager
-    RECTANGLE "Клиент Kafka" as KafkaClient
-}
-
-DeviceAPI --> CommandHandler : REST Запросы
-CommandHandler --> StateManager : Логика устройства
-CommandHandler --> KafkaClient : Публикация событий
-StateManager --> KafkaClient : События изменений
+Sensors --> MonitoringService : Отправка данных
+DeviceService --> HeatingDevices : Управление устройствами
 
 @enduml
+
 
 ```
 

@@ -1,26 +1,17 @@
 @startuml
-!define RECTANGLE rectangle
-!define CLOUD cloud
-!define DATABASE database
-
 actor "Пользователь" as User
-CLOUD "Датчики температуры" as Sensors
-RECTANGLE "Монолитное приложение" as Monolith {
-    RECTANGLE "Управление устройствами" as DeviceControl
-    RECTANGLE "Мониторинг данных" as Monitoring
-    RECTANGLE "Аутентификация и авторизация" as Auth
-    RECTANGLE "Пользовательский интерфейс" as UI
+rectangle "Система управления домом" as System {
+  rectangle "Управление устройствами" as DeviceControl
+  rectangle "Мониторинг данных" as Monitoring
+  rectangle "Аутентификация" as Authentication
 }
-DATABASE "База данных" as Database
 
-User --> Auth : Аутентификация
-User --> UI : Взаимодействие через веб-интерфейс
-UI --> DeviceControl : Управление устройствами
-UI --> Monitoring : Отображение данных
+rectangle "Нагревательные приборы" as HeatingDevices
 
-Sensors --> Monitoring : Отправка данных
-Monitoring --> Database : Хранение истории данных
-DeviceControl --> Database : Чтение и запись конфигурации устройств
-Auth --> Database : Проверка данных пользователей
+User --> Authentication : Аутентификация
+Authentication --> DeviceControl : Авторизованный доступ
+User --> Monitoring : Просмотр данных
+DeviceControl --> HeatingDevices : Управление нагревателями
+Monitoring --> HeatingDevices : Сбор данных
 
 @enduml
