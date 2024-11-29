@@ -1,0 +1,43 @@
+@startuml
+!define RECTANGLE rectangle
+!define CLOUD cloud
+!define DATABASE database
+
+actor "Пользователь" as User
+
+CLOUD "API Gateway" as Gateway
+
+RECTANGLE "Микросервисы" {
+    RECTANGLE "Управление устройствами" as DeviceService
+    RECTANGLE "Мониторинг данных" as MonitoringService
+    RECTANGLE "Аутентификация и авторизация" as AuthService
+    RECTANGLE "Обработка данных" as DataProcessing
+    RECTANGLE "Пользовательский интерфейс (UI)" as UIService
+}
+
+CLOUD "Kafka" as Kafka
+DATABASE "База данных: Управление устройствами" as DeviceDB
+DATABASE "База данных: Мониторинг" as MonitoringDB
+DATABASE "База данных: Аутентификация" as AuthDB
+
+cloud "Датчики (Sensors)" as Sensors
+cloud "Устройства нагрева (Heating Devices)" as HeatingDevices
+
+User --> Gateway : HTTP Запросы
+Gateway --> AuthService : Аутентификация
+Gateway --> UIService : Веб-интерфейс
+Gateway --> DeviceService : Управление устройствами
+Gateway --> MonitoringService : Запрос данных
+
+DeviceService --> DeviceDB : Чтение/Запись
+MonitoringService --> MonitoringDB : Чтение/Запись
+AuthService --> AuthDB : Проверка данных
+
+DeviceService --> Kafka : Публикация событий
+MonitoringService --> Kafka : Публикация данных
+DataProcessing --> Kafka : Подписка на события
+
+Sensors --> MonitoringService : Отправка данных
+DeviceService --> HeatingDevices : Управление устройствами
+
+@enduml
