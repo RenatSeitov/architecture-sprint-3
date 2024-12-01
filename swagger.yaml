@@ -1,0 +1,159 @@
+openapi: 3.0.0
+info:
+  title: Smart Home API
+  version: 1.0.0
+  description: API для взаимодействия с микросервисами умного дома.
+
+servers:
+  - url: https://api.smarthome.com
+    description: Продакшн сервер
+
+paths:
+  /auth/login:
+    post:
+      summary: Аутентификация пользователя
+      description: Аутентификация пользователя и получение токенов.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: user123
+                password:
+                  type: string
+                  example: password123
+      responses:
+        200:
+          description: Успешная аутентификация
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1..."
+                  refreshToken:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1..."
+        401:
+          description: Неверные учетные данные
+
+  /auth/validate:
+    post:
+      summary: Проверка токена
+      description: Проверка действительности токена доступа.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                accessToken:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1..."
+      responses:
+        200:
+          description: Токен действителен
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isValid:
+                    type: boolean
+                    example: true
+        401:
+          description: Токен недействителен
+
+  /devices:
+    get:
+      summary: Получение списка устройств
+      description: Возвращает список устройств, связанных с пользователем.
+      responses:
+        200:
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: "123e4567-e89b-12d3-a456-426614174000"
+                    name:
+                      type: string
+                      example: "Термостат"
+                    status:
+                      type: string
+                      example: "on"
+                    type:
+                      type: string
+                      example: "Heating"
+                    houseId:
+                      type: string
+                      example: "987e6543-b21c-34d5-a123-426614174321"
+
+  /devices/{id}/toggle:
+    post:
+      summary: Переключение состояния устройства
+      description: Изменяет состояние устройства (включено/выключено).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        200:
+          description: Состояние устройства обновлено
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+                  status:
+                    type: string
+                    example: "off"
+
+  /telemetry:
+    get:
+      summary: Получение данных телеметрии
+      description: Возвращает последние данные телеметрии для указанного устройства.
+      parameters:
+        - name: deviceId
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        200:
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deviceId:
+                    type: string
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+                  temperature:
+                    type: number
+                    format: float
+                    example: 22.5
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2024-11-29T12:00:00Z"

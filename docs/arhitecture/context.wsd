@@ -1,0 +1,17 @@
+@startuml
+actor "Пользователь" as User
+rectangle "Система управления домом" as System {
+  rectangle "Управление устройствами" as DeviceControl
+  rectangle "Мониторинг данных" as Monitoring
+  rectangle "Аутентификация" as Authentication
+}
+
+rectangle "Нагревательные приборы" as HeatingDevices
+
+User --> Authentication : Аутентификация
+Authentication --> DeviceControl : Авторизованный доступ
+User --> Monitoring : Просмотр данных
+DeviceControl --> HeatingDevices : Управление нагревателями
+Monitoring --> HeatingDevices : Сбор данных
+
+@enduml
